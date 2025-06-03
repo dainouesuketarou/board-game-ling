@@ -1,18 +1,18 @@
-import Peer from 'peerjs';
-import { GameState, Player, Room, RingSize } from '../types/game';
+import Peer, { DataConnection } from 'peerjs';
+import { GameState, Player, RingSize } from '../types/game';
 
 type MessageType = 'JOIN_ROOM' | 'PLAYER_JOINED' | 'GAME_START' | 'GAME_STATE' | 'PLACE_RING' | 'LEAVE_ROOM';
 
 interface Message {
   type: MessageType;
-  data: any;
+  data: unknown;
   senderId: string;
 }
 
 export class P2PConnection {
   private peer: Peer | null = null;
-  private connections: Record<string, Peer.DataConnection> = {};
-  private callbacks: Record<MessageType, ((data: any) => void)[]> = {
+  private connections: Record<string, DataConnection> = {};
+  private callbacks: Record<MessageType, ((data: unknown) => void)[]> = {
     JOIN_ROOM: [],
     PLAYER_JOINED: [],
     GAME_START: [],
@@ -36,7 +36,27 @@ export class P2PConnection {
   initialize(): Promise<string> {
     return new Promise((resolve, reject) => {
       try {
-        this.peer = new Peer();
+        this.peer = new Peer('', { // もし特定のIDを自分で指定したい場合は空文字列の部分にID文字列を入れます。通常は自動生成で問題ありません。
+          // もしご自身で PeerJS サーバーをホストしている場合は、以下のコメントアウトを解除して設定してください。
+          // host: 'your-peerjs-server-host.com', // 例: 'localhost' や独自ドメイン
+          // port: 9000, // 例: 9000
+          // path: '/myapp', // 例: '/peerjs'
+          config: {
+            'iceServers': [
+              { urls: 'stun:stun.l.google.com:19302' },
+              { urls: 'stun:stun1.l.google.com:19302' },
+              { urls: 'stun:stun2.l.google.com:19302' },
+              // 必要であれば、さらに多くのSTUNサーバーや、TURNサーバーを追加します。
+              // TURNサーバーは通常有料ですが、より確実な接続を提供します。
+              // {
+              //   urls: 'turn:your.turn.server.com:port',
+              //   username: 'your-username',
+              //   credential: 'your-password'
+              // }
+            ]
+          },
+          debug: 3 // 接続問題をデバッグするために、ログレベルを3に設定します（0:エラーのみ, 1:警告, 2:情報, 3:詳細ログ）
+        });
         
         this.peer.on('open', (id) => {
           this.myId = id;
@@ -59,12 +79,12 @@ export class P2PConnection {
   }
 
   // 接続のセットアップ
-  private setupConnection(conn: Peer.DataConnection) {
+  private setupConnection(conn: DataConnection) {
     conn.on('open', () => {
       this.connections[conn.peer] = conn;
       
-      conn.on('data', (data: Message) => {
-        this.handleMessage(data);
+      conn.on('data', (data: unknown) => {
+        this.handleMessage(data as Message);
       });
       
       conn.on('close', () => {
@@ -72,7 +92,7 @@ export class P2PConnection {
         this.triggerCallback('LEAVE_ROOM', { peerId: conn.peer });
       });
       
-      conn.on('error', (err) => {
+      conn.on('error', (err: Error) => {
         console.error('Connection error:', err);
       });
     });
@@ -84,12 +104,12 @@ export class P2PConnection {
   }
 
   // コールバックを実行
-  private triggerCallback(type: MessageType, data: any) {
+  private triggerCallback(type: MessageType, data: unknown) {
     this.callbacks[type].forEach((callback) => callback(data));
   }
 
   // メッセージを送信
-  private sendMessage(type: MessageType, data: any, targetId?: string) {
+  private sendMessage(type: MessageType, data: unknown, targetId?: string) {
     const message: Message = {
       type,
       data,
@@ -110,12 +130,12 @@ export class P2PConnection {
   }
 
   // イベントリスナーを追加
-  on(type: MessageType, callback: (data: any) => void) {
-    this.callbacks[type].push(callback);
+  on<T>(type: MessageType, callback: (data: T) => void) {
+    this.callbacks[type].push(callback as (data: unknown) => void);
   }
 
   // イベントリスナーを削除
-  off(type: MessageType, callback: (data: any) => void) {
+  off<T>(type: MessageType, callback: (data: T) => void) {
     this.callbacks[type] = this.callbacks[type].filter((cb) => cb !== callback);
   }
 

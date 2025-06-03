@@ -5,7 +5,7 @@ import RoomCreation from './components/RoomCreation';
 import RoomJoining from './components/RoomJoining';
 import RoomLobby from './components/RoomLobby';
 import GameContainer from './components/GameContainer';
-import { GameState, Player, PlayerColor, RingSize, Room } from './types/game';
+import { GameState, Player, PlayerColor, RingSize } from './types/game';
 import { createPlayer, createInitialGameState, getAvailableColors } from './utils/gameUtils';
 import { P2PConnection, createP2PConnection } from './utils/p2pConnection';
 
@@ -93,7 +93,7 @@ function App() {
   const handleRingPlacement = (data: { cellId: string; ringSize: RingSize }) => {
     if (!isHost || !gameState) return;
     
-    const { cellId, ringSize } = data;
+    const { ringSize } = data;
     const currentPlayer = gameState.players[gameState.currentPlayerIndex];
     
     // 現在のプレイヤーのターンか確認
@@ -130,7 +130,6 @@ function App() {
   const handleRoomCreated = (roomId: string, playerName: string, color: PlayerColor) => {
     const newPlayer = createPlayer(playerName, color);
     const peerId = p2pConnection?.getMyId() || '';
-    const actualRoomId = peerId; // ホストのピアIDをルームIDとして使用
     
     setRoomId(roomId);
     setMyPlayerId(newPlayer.id);
@@ -162,7 +161,14 @@ function App() {
       setScreen('lobby');
     } catch (error) {
       console.error('Failed to join room:', error);
-      alert('ルームへの参加に失敗しました。');
+      // エラーの種類によってメッセージを変えるなどの処理も考えられます
+      let message = 'ルームへの参加に失敗しました。';
+      if (error instanceof Error) {
+        // PeerJSのエラーメッセージには、接続できなかった理由に関するヒントが含まれている場合があります
+        // 例えば、'peer-unavailable' や 'connection-error' など
+        message += `\n理由: ${error.message}`;
+      }
+      alert(message + '\nルームIDを確認し、ホストがオンラインであることを確認してください。');
     }
   };
 

@@ -32,13 +32,6 @@ const RoomJoining: React.FC<RoomJoiningProps> = ({ onRoomJoined, availableColors
     onRoomJoined(roomId, playerName, availableColors[Math.floor(Math.random() * availableColors.length)]);
   };
 
-  const colorLabels: Record<PlayerColor, string> = {
-    red: '赤',
-    blue: '青',
-    green: '緑',
-    yellow: '黄',
-  };
-
   return (
     <motion.div
       className="card max-w-md mx-auto"

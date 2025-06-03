@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowLeft } from 'lucide-react';
-import { PlayerColor, Room } from '../types/game';
+import { PlayerColor } from '../types/game';
 import { generateRoomId } from '../utils/gameUtils';
 
 interface RoomCreationProps {
