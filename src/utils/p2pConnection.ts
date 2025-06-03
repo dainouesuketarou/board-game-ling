@@ -36,26 +36,26 @@ export class P2PConnection {
   initialize(): Promise<string> {
     return new Promise((resolve, reject) => {
       try {
-        this.peer = new Peer('', { // もし特定のIDを自分で指定したい場合は空文字列の部分にID文字列を入れます。通常は自動生成で問題ありません。
-          // もしご自身で PeerJS サーバーをホストしている場合は、以下のコメントアウトを解除して設定してください。
-          // host: 'your-peerjs-server-host.com', // 例: 'localhost' や独自ドメイン
-          // port: 9000, // 例: 9000
-          // path: '/myapp', // 例: '/peerjs'
+        this.peer = new Peer('', {
           config: {
             'iceServers': [
               { urls: 'stun:stun.l.google.com:19302' },
               { urls: 'stun:stun1.l.google.com:19302' },
               { urls: 'stun:stun2.l.google.com:19302' },
-              // 必要であれば、さらに多くのSTUNサーバーや、TURNサーバーを追加します。
-              // TURNサーバーは通常有料ですが、より確実な接続を提供します。
-              // {
-              //   urls: 'turn:your.turn.server.com:port',
-              //   username: 'your-username',
-              //   credential: 'your-password'
-              // }
+              { urls: 'stun:stun3.l.google.com:19302' },
+              { urls: 'stun:stun4.l.google.com:19302' },
+              { urls: 'stun:stun.ekiga.net' },
+              { urls: 'stun:stun.ideasip.com' },
+              { urls: 'stun:stun.schlund.de' },
+              { urls: 'stun:stun.stunprotocol.org:3478' },
+              { urls: 'stun:stun.voiparound.com' },
+              { urls: 'stun:stun.voipbuster.com' },
+              { urls: 'stun:stun.voipstunt.com' },
+              { urls: 'stun:stun.voxgratia.org' }
             ]
           },
-          debug: 3 // 接続問題をデバッグするために、ログレベルを3に設定します（0:エラーのみ, 1:警告, 2:情報, 3:詳細ログ）
+          debug: 2, // デバッグレベルを2に下げる
+          secure: true // セキュア接続を強制
         });
         
         this.peer.on('open', (id) => {
