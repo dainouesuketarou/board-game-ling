@@ -154,31 +154,44 @@ export class P2PConnection {
     this.isHost = true;
   }
 
-  // ルームに参加
-  joinRoom(roomId: string, player: Player): Promise<void> {
-    return new Promise((resolve, reject) => {
-      if (!this.peer) {
-        reject(new Error('Peer not initialized'));
+  // joinRoom メソッド内の変更案
+joinRoom(roomId: string, player: Player): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (!this.peer) {
+      reject(new Error('Peer not initialized'));
+      return;
+    }
+
+    this.roomId = roomId;
+    let connectAttempts = 0;
+    const maxConnectAttempts = 3; // 例: 3回まで試行
+
+    const attemptConnection = () => {
+      if (!this.peer) { // PeerJSインスタンスが途中で破棄された場合
+        reject(new Error('Peer became unavailable during connection attempt'));
         return;
       }
-      
-      this.roomId = roomId;
-      
-      // ホストに直接接続
-      const conn = this.peer.connect(roomId);
-      
+      const conn = this.peer.connect(roomId, { reliable: true }); // reliableオプションも検討
+
       conn.on('open', () => {
         this.setupConnection(conn);
         this.sendMessage('JOIN_ROOM', { player }, roomId);
         resolve();
       });
-      
+
       conn.on('error', (err) => {
-        console.error('Failed to join room:', err);
-        reject(err);
+        console.error(`Failed to connect to room ${roomId} (attempt ${connectAttempts + 1}):`, err);
+        connectAttempts++;
+        if (connectAttempts < maxConnectAttempts) {
+          setTimeout(attemptConnection, 2000 * connectAttempts); // 指数バックオフで再試行
+        } else {
+          reject(new Error(`Failed to connect to room ${roomId} after ${maxConnectAttempts} attempts. Last error: ${err.message}`));
+        }
       });
-    });
-  }
+    };
+    attemptConnection();
+  });
+}
 
   // ゲームを開始
   startGame(gameState: GameState): void {
