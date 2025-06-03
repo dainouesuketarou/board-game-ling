@@ -54,8 +54,12 @@ export class P2PConnection {
               { urls: 'stun:stun.voxgratia.org' }
             ]
           },
-          debug: 2, // デバッグレベルを2に下げる
-          secure: true // セキュア接続を強制
+          debug: 2,
+          secure: true,
+          host: 'peerjs-server.herokuapp.com',
+          port: 443,
+          path: '/',
+          pingInterval: 5000
         });
         
         this.peer.on('open', (id) => {
@@ -67,9 +71,22 @@ export class P2PConnection {
           this.setupConnection(conn);
         });
         
+        // 接続エラー時のリトライロジック
+        let retryCount = 0;
+        const maxRetries = 3;
+        
         this.peer.on('error', (err) => {
           console.error('Peer connection error:', err);
-          reject(err);
+          if (retryCount < maxRetries) {
+            retryCount++;
+            console.log(`Retrying connection (${retryCount}/${maxRetries})...`);
+            setTimeout(() => {
+              this.peer?.destroy();
+              this.initialize();
+            }, 2000 * retryCount); // 指数バックオフ
+          } else {
+            reject(err);
+          }
         });
       } catch (err) {
         console.error('Failed to initialize peer:', err);
